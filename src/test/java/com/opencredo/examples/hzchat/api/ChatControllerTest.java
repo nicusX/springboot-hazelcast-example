@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.*;
 @DirtiesContext
 public class ChatControllerTest {
 
+	// THIS IS A BAD TEST:
+	// All the methods reuses the same Hazelcast instance
 
 	// In Spring tests, when the Hazelcast instance is managed by Spring Boot
 	// you SHOULD NOT call Hazelcast.shutdownAll() in the @After method
