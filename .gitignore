@@ -1,0 +1,17 @@
+*.log
+*.aux
+*.toc
+*.pdf
+.DS_Store
+target/
+.project
+.classpath
+.settings/
+.idea/
+.patch
+*.iml
+mydatabase*
+bin/
+hibernateDB
+springHibernateDB
+.mvn
