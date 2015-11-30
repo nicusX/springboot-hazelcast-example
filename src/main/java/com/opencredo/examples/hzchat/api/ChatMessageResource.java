@@ -1,15 +1,17 @@
 package com.opencredo.examples.hzchat.api;
 
 public class ChatMessageResource {
-    private String messageUid;
+    private String timestamp;
     private String recipient;
     private String sender;
     private String text;
 
-    public String getMessageUid() { return messageUid; }
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
+    }
 
-    public void setMessageUid(String messageUid) {
-        this.messageUid = messageUid;
+    public String getTimestamp() {
+        return timestamp;
     }
 
     public String getRecipient() {

@@ -5,22 +5,25 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.io.Serializable;
+import java.time.Instant;
 
 public class ChatMessage implements Serializable {
-    private final String messageUid;
+    private static final long serialVersionUID = 6664167798628462875L;
+
+    private final Instant timestamp;
     private final String recipient;
     private final String sender;
     private final String text;
 
-    public ChatMessage(String messageUid, String sender, String recipient, String text) {
-        this.messageUid = messageUid;
+    public ChatMessage(Instant timestamp, String sender, String recipient, String text) {
+        this.timestamp = timestamp;
         this.recipient = recipient;
         this.sender = sender;
         this.text = text;
     }
 
-    public String getMessageUid() {
-        return messageUid;
+    public Instant getTimestamp() {
+        return timestamp;
     }
 
     public String getRecipient() {
@@ -44,17 +47,17 @@ public class ChatMessage implements Serializable {
         ChatMessage that = (ChatMessage) o;
 
         return new EqualsBuilder()
-                .append(messageUid, that.messageUid)
+                .append(timestamp, that.timestamp)
                 .append(recipient, that.recipient)
                 .append(sender, that.sender)
                 .append(text, that.text)
                 .isEquals();
     }
 
-    @Override // Not strictly required by Hazelcast
+    @Override
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
-                .append(messageUid)
+                .append(timestamp)
                 .append(recipient)
                 .append(sender)
                 .append(text)
@@ -64,7 +67,7 @@ public class ChatMessage implements Serializable {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-                .append("messageUid", messageUid)
+                .append("timestamp", timestamp)
                 .append("recipient", recipient)
                 .append("sender", sender)
                 .append("text", text)
