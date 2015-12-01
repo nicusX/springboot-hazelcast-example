@@ -24,13 +24,11 @@ public class ChatController {
 
     @RequestMapping(value="/messages", method = RequestMethod.POST)
     public void send(@RequestBody ChatMessageResource messageResource) {
-
         // TODO Add validation and error handling
-
         chatService.send(map(messageResource));
     }
 
-    @Transactional // Note this is not actually used, if no transaction manager is defined
+    @Transactional
     @RequestMapping(value = "/recipients/{recipient}/poll", method = RequestMethod.GET)
     public List<ChatMessageResource> receiveAll(@PathVariable("recipient") String recipient) {
         final List<ChatMessage> messages = chatService.receive(recipient);
@@ -41,12 +39,12 @@ public class ChatController {
         return messages.stream().map( ChatController::map ).collect(Collectors.toList());
     }
 
-    @Transactional // Note this is not actually used, if no transaction manager is defined
+    @Transactional
     @RequestMapping(value = "/recipients/{recipient}/poll-one", method = RequestMethod.GET)
     public ChatMessageResource receiveOne(@PathVariable("recipient") String recipient, HttpServletResponse response) throws IOException {
         final Optional<ChatMessage> polled = chatService.receiveOne(recipient);
         if ( polled.isPresent()) {
-            // Different from the receiveAll method, this method does not throw any exception finding the poision pill
+            // This method does not throw any exception finding the poison pill
             return map( polled.get() );
         } else {
             response.sendError(404);

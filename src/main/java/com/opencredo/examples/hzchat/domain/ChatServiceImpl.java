@@ -65,7 +65,7 @@ public class ChatServiceImpl implements ChatService {
         // Poll recipient's queue until empty
         final List<ChatMessage> messages = new ArrayList<>();
         while ( true ) {
-            final ChatMessage message = recipientQueue.poll();
+            final ChatMessage message = recipientQueue.poll(); // Cannot use IQueue.drainTo(..), not supported by TransactionalQueue
             if ( message == null ) break;
             LOG.debug("Polled message {}", message);
 
