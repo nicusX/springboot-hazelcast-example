@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -31,20 +32,23 @@ public class ChatServiceHazelcastImplTest {
     }
 
 
-    @Test
+    @Test(timeout = 10000L)
     public void testSendAndReceive()  {
         final ChatMessage message = new ChatMessage("mssg-uid", "sender", "recipient", "text");
 
         service.send(message);
 
-        final List<ChatMessage> received = service.receive("recipient");
+        List<ChatMessage> received = new ArrayList<>();
+        while(received.isEmpty()) {
+            received = service.receive("recipient");
+        }
 
         assertNotNull(received);
         assertEquals(1, received.size());
         assertEquals(message, received.get(0));
     }
 
-    @Test
+    @Test(timeout = 10000L)
     public void testReceiveMessageInOrder() {
         final ChatMessage message1 = new ChatMessage("mssg-uid1", "sender-A", "recipient", "text");
         final ChatMessage message2 = new ChatMessage("mssg-uid2", "sender-B", "recipient", "text");
@@ -52,7 +56,10 @@ public class ChatServiceHazelcastImplTest {
         service.send(message1);
         service.send(message2);
 
-        final List<ChatMessage> received = service.receive("recipient");
+        List<ChatMessage> received = new ArrayList<>();
+        while(received.isEmpty()) {
+            received = service.receive("recipient");
+        }
 
         assertNotNull(received);
         assertEquals(2, received.size());
@@ -61,14 +68,17 @@ public class ChatServiceHazelcastImplTest {
 
     }
 
-    @Test
+    @Test(timeout = 10000L)
     public void testIgnoreDuplicateMessages() {
         final ChatMessage message = new ChatMessage("mssg-uid", "sender", "recipient", "text");
 
         service.send(message);
         service.send(message);
 
-        final List<ChatMessage> received = service.receive("recipient");
+        List<ChatMessage> received = new ArrayList<>();
+        while(received.isEmpty()) {
+            received = service.receive("recipient");
+        }
 
         assertNotNull(received);
         assertEquals(1, received.size());
