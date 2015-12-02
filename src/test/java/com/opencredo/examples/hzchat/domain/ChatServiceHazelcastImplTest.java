@@ -2,6 +2,7 @@ package com.opencredo.examples.hzchat.domain;
 
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.test.TestHazelcastInstanceFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,9 +20,11 @@ public class ChatServiceHazelcastImplTest {
 
     private ChatService service;
 
+    private static TestHazelcastInstanceFactory testInstanceFactory = new TestHazelcastInstanceFactory();
+
     @Before
     public void setUp() {
-        final HazelcastInstance instance = Hazelcast.newHazelcastInstance();
+        final HazelcastInstance instance = testInstanceFactory.newHazelcastInstance();
         service = new ChatServiceHazelcastImpl(instance);
     }
 

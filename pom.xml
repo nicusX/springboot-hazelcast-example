@@ -52,6 +52,12 @@
 			<version>2.5.0</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.hazelcast</groupId>
+			<artifactId>hazelcast</artifactId>
+			<classifier>tests</classifier>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
 	
