@@ -1,4 +1,4 @@
-package org.mpilone.hazelcastmq.spring.tx;
+package com.opencredo.hazelcast;
 
 import com.hazelcast.transaction.TransactionContext;
 import org.springframework.transaction.support.ResourceHolder;
@@ -6,8 +6,8 @@ import org.springframework.transaction.support.ResourceHolderSupport;
 
 /**
  * <p>
- *    This class comes from hazelcastMQ by Mike Pilone https://github.com/mpilone/hazelcastmq
- *    with a few modifications
+ *    This class is a copy of HazelcastTransactionManager,
+ *    from hazelcastMQ poject by Mike Pilone: https://github.com/mpilone/hazelcastmq
  * </p>
  *
  * A {@link ResourceHolder} for the Hazelcast {@link TransactionContext} to
@@ -15,7 +15,7 @@ import org.springframework.transaction.support.ResourceHolderSupport;
  *
  * @author mpilone
  */
-class HazelcastTransactionContextHolder extends ResourceHolderSupport {
+public class HazelcastTransactionContextHolder extends ResourceHolderSupport {
 
     private TransactionContext transactionContext;
     private boolean transactionActive;

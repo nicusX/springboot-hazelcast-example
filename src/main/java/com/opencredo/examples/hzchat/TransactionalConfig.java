@@ -3,7 +3,7 @@ package com.opencredo.examples.hzchat;
 import com.hazelcast.core.HazelcastInstance;
 import com.opencredo.examples.hzchat.domain.ChatService;
 import com.opencredo.examples.hzchat.domain.TransactionalChatServiceImpl;
-import org.mpilone.hazelcastmq.spring.tx.HazelcastTransactionManager;
+import com.opencredo.hazelcast.HazelcastTransactionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

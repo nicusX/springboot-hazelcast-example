@@ -1,5 +1,6 @@
 package com.opencredo.examples.hzchat.domain;
 
+import com.hazelcast.core.BaseQueue;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.IQueue;
@@ -29,11 +30,11 @@ public class ChatServiceImpl implements ChatService {
 
     // Starting the HazelcastInstance is heavyweight, while retrieving a distributed object from it is not
 
-    private IQueue<ChatMessage> recipientQueueForSeding(String recipient) {
+    private BaseQueue<ChatMessage> recipientQueueForSeding(String recipient) {
         return hazelcastInstance.getQueue(RECIPIENT_QUEUE_NAME_SUFFIX + recipient);
     }
 
-    protected IQueue<ChatMessage> recipientQueueForPolling(String recipient) {
+    protected BaseQueue<ChatMessage> recipientQueueForPolling(String recipient) {
         LOG.debug("Using non-transactional Queue for polling");
         return recipientQueueForSeding(recipient); // Same queue as for sending
     }
@@ -59,13 +60,13 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public List<ChatMessage> receive(String recipient) {
-        final IQueue<ChatMessage> recipientQueue = recipientQueueForPolling(recipient);
         LOG.debug("Polling message for recipient: {}", recipient);
 
         // Poll recipient's queue until empty
+        final BaseQueue<ChatMessage> recipientQueue = recipientQueueForPolling(recipient);
         final List<ChatMessage> messages = new ArrayList<>();
         while ( true ) {
-            final ChatMessage message = recipientQueue.poll(); // Cannot use IQueue.drainTo(..), not supported by TransactionalQueue
+            final ChatMessage message = recipientQueue.poll();
             if ( message == null ) break;
             LOG.debug("Polled message {}", message);
 

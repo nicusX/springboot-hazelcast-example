@@ -1,22 +1,19 @@
-package org.mpilone.hazelcastmq.spring.tx;
+package com.opencredo.hazelcast;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IQueue;
 import com.hazelcast.core.TransactionalQueue;
-import com.hazelcast.logging.ILogger;
-import com.hazelcast.logging.Logger;
 import com.hazelcast.transaction.TransactionContext;
-import org.mpilone.hazelcastmq.core.QueueTopicProxyFactory;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.NestedTransactionNotSupportedException;
 import org.springframework.transaction.support.ResourceHolderSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * <p>
- *    This class comes from hazelcastMQ by Mike Pilone https://github.com/mpilone/hazelcastmq
- *    with a few modifications
+ * This class is strongly based on HazelcastUtils,
+ * from hazelcastMQ poject by Mike Pilone: https://github.com/mpilone/hazelcastmq
  * </p>
- *
+ * <p>
  * <p>
  * Transaction utility methods for a working with a HazelcastInstance in a
  * Spring managed transaction. The utility methods will return transactional
@@ -26,18 +23,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  * new transaction context will be created and synchronized with the transaction
  * manager as a transactional resource.
  * </p>
- * <p>
- * [Lorenzo] References to TransactionAwareHazelcastInstanceProxyFactory have been removed,
- * not being used by this sample.
- * </p>
  *
  * @author mpilone
+ * @author nicus
  */
 public class HazelcastUtils {
-    /**
-     * The log for this class.
-     */
-    private final static ILogger log = Logger.getLogger(HazelcastUtils.class);
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(HazelcastUtils.class);
 
     public static void releaseTransactionContext(
             TransactionContext transactionContext,
@@ -56,41 +47,30 @@ public class HazelcastUtils {
      * transaction.
      * </p>
      * <p>
-     * WARNING: Hazelcast defines two different interfaces for a transactional
-     * queue and a non-transactional queue. This method maps them both to the same
-     * interface via generated proxies when needed; however the transactional
-     * queue only implements a subset of the normal queue operations. Calling an
-     * operation that is not supported on a transactional queue will result in a
-     * {@link UnsupportedOperationException}.
+     * [nicus] This method has been modified to return a TransactionalQueue, instead of
+     * a proxied TransactionalQueue instance implementing IQueue.
      * </p>
      *
-     * @param <E> the type of the items in the queue
-     * @param name the name of the queue to get
-     * @param hazelcastInstance the Hazelcast instance to get the queue from
+     * @param <E>                            the type of the items in the queue
+     * @param name                           the name of the queue to get
+     * @param hazelcastInstance              the Hazelcast instance to get the queue from
      * @param synchedLocalTransactionAllowed true to allow a new Hazelcast
-     * transaction to be started and synchronized with any existing transaction;
-     * false to only return the transactional object if a top-level Hazelcast
-     * transaction is active
-     *
+     *                                       transaction to be started and synchronized with any existing transaction;
+     *                                       false to only return the transactional object if a top-level Hazelcast
+     *                                       transaction is active
      * @return the transactional queue if there is an active Hazelcast transaction
      * or an active transaction to synchronize to and
      * synchedLocalTransactionAllowed is true; null otherwise
      */
-    public static <E> IQueue<E> getTransactionalQueue(String name,
-                                                      HazelcastInstance hazelcastInstance,
-                                                      boolean synchedLocalTransactionAllowed) {
+    public static <E> TransactionalQueue<E> getTransactionalQueue(String name, HazelcastInstance hazelcastInstance, boolean synchedLocalTransactionAllowed) {
         TransactionContext transactionContext = getHazelcastTransactionContext(hazelcastInstance, synchedLocalTransactionAllowed);
 
         if (transactionContext != null) {
-            log.finest(String.format("Retrieving transactional Queue bound to tx id: %s", transactionContext.getTxnId()));
-            TransactionalQueue targetQueue = transactionContext.getQueue(name);
-            return QueueTopicProxyFactory.createQueueProxy(targetQueue);
-        }
-        else {
+            LOG.trace("Retrieving transactional Queue bound to tx id: {}", transactionContext.getTxnId());
+            return transactionContext.getQueue(name);
+        } else {
             // No transaction to synchronize to.
-            // [Lorenzo] Returns a non-transactional Queue
-            log.finest("No transaction running. Returning a non-transactional Queue");
-            return hazelcastInstance.getQueue(name);
+            throw new IllegalStateException("No transaction running. Unable to retrieve a transactional queue.");
         }
     }
 
@@ -101,21 +81,16 @@ public class HazelcastUtils {
      * active, this method returns null.
      *
      * @param hazelcastInstance the Hazelcast instance used to create begin a
-     * transaction if needed
-     *
+     *                          transaction if needed
      * @return the transaction context holder if a transaction is active, null
      * otherwise
      */
-    public static TransactionContext getHazelcastTransactionContext(
-            HazelcastInstance hazelcastInstance,
-            boolean synchedLocalTransactionAllowed) {
+    public static TransactionContext getHazelcastTransactionContext(HazelcastInstance hazelcastInstance, boolean synchedLocalTransactionAllowed) {
 
         HazelcastTransactionContextHolder conHolder =
-                (HazelcastTransactionContextHolder) TransactionSynchronizationManager.
-                        getResource(hazelcastInstance);
+                (HazelcastTransactionContextHolder) TransactionSynchronizationManager.getResource(hazelcastInstance);
 
-        if (conHolder != null && (conHolder.hasTransactionContext() || conHolder.
-                isSynchronizedWithTransaction())) {
+        if (conHolder != null && (conHolder.hasTransactionContext() || conHolder.isSynchronizedWithTransaction())) {
             // We are already synchronized with the transaction which means
             // someone already requested a transactional resource or the transaction
             // is being managed at the top level by HazelcastTransactionManager.
@@ -127,29 +102,24 @@ public class HazelcastUtils {
                 // it binds the transaction context to the thread and doesn't
                 // supported nested transactions. Maybe I'm missing something.
 
-                throw new NestedTransactionNotSupportedException("Trying to resume a "
-                        + "Hazelcast transaction? Can't do that.");
+                throw new NestedTransactionNotSupportedException("Trying to resume a Hazelcast transaction? Can't do that.");
             }
-        }
-        else if (TransactionSynchronizationManager.isSynchronizationActive()
+        } else if (TransactionSynchronizationManager.isSynchronizationActive()
                 && synchedLocalTransactionAllowed) {
             // No holder or no transaction context but we want to be
             // synchronized to the transaction.
             if (conHolder == null) {
                 conHolder = new HazelcastTransactionContextHolder();
-                TransactionSynchronizationManager.bindResource(hazelcastInstance,
-                        conHolder);
+                TransactionSynchronizationManager.bindResource(hazelcastInstance, conHolder);
             }
 
-            TransactionContext transactionContext = hazelcastInstance.
-                    newTransactionContext();
+            TransactionContext transactionContext = hazelcastInstance.newTransactionContext();
             transactionContext.beginTransaction();
 
             conHolder.setTransactionContext(transactionContext);
             conHolder.setSynchronizedWithTransaction(true);
             conHolder.setTransactionActive(true);
-            TransactionSynchronizationManager.registerSynchronization(
-                    new HazelcastTransactionSynchronization(conHolder, hazelcastInstance));
+            TransactionSynchronizationManager.registerSynchronization(new HazelcastTransactionSynchronization(conHolder, hazelcastInstance));
         }
 
         return conHolder != null ? conHolder.getTransactionContext() : null;
@@ -160,7 +130,7 @@ public class HazelcastUtils {
      * transaction manager to associated a Hazelcast transaction to the manager.
      * The synchronization will commit or rollback with the main transaction to
      * provide a best attempt synchronized commit.
-     *
+     * <p>
      * <p>
      * The order of operations appears to be:
      * <ol>
@@ -173,20 +143,15 @@ public class HazelcastUtils {
      * </p>
      */
     private static class HazelcastTransactionSynchronization extends ResourceHolderSynchronization<HazelcastTransactionContextHolder, HazelcastInstance> {
-
-        /**
-         * The log for this class.
-         */
-        private static final ILogger log = Logger.getLogger(
-                HazelcastTransactionSynchronization.class);
+        private final static org.slf4j.Logger LOG = LoggerFactory.getLogger(HazelcastTransactionSynchronization.class);
 
         /**
          * Constructs the synchronization.
          *
          * @param resourceHolder the resource holder to associate with the
-         * synchronization
-         * @param resourceKey the resource key to bind and lookup the resource
-         * holder
+         *                       synchronization
+         * @param resourceKey    the resource key to bind and lookup the resource
+         *                       holder
          */
         public HazelcastTransactionSynchronization(
                 HazelcastTransactionContextHolder resourceHolder,
@@ -196,33 +161,31 @@ public class HazelcastUtils {
 
         @Override
         public void afterCommit() {
-            log.finest("In HazelcastTransactionSynchronization::afterCommit");
+            LOG.debug("In HazelcastTransactionSynchronization::afterCommit");
             super.afterCommit();
         }
 
         @Override
         public void afterCompletion(int status) {
-            log.finest("In HazelcastTransactionSynchronization::afterCompletion");
+            LOG.debug("In HazelcastTransactionSynchronization::afterCompletion");
             super.afterCompletion(status);
         }
 
         @Override
         public void beforeCommit(boolean readOnly) {
-            log.finest("In HazelcastTransactionSynchronization::beforeCommit");
+            LOG.debug("In HazelcastTransactionSynchronization::beforeCommit");
             super.beforeCommit(readOnly);
         }
 
         @Override
         public void beforeCompletion() {
-            log.finest("In HazelcastTransactionSynchronization::beforeCompletion");
+            LOG.debug("In HazelcastTransactionSynchronization::beforeCompletion");
             super.beforeCompletion();
         }
 
         @Override
-        protected void processResourceAfterCommit(
-                HazelcastTransactionContextHolder resourceHolder) {
-            log.finest("In HazelcastTransactionSynchronization::"
-                    + "processResourceAfterCommit");
+        protected void processResourceAfterCommit(HazelcastTransactionContextHolder resourceHolder) {
+            LOG.debug("In HazelcastTransactionSynchronization:: processResourceAfterCommit");
 
             super.processResourceAfterCommit(resourceHolder);
 
@@ -236,11 +199,8 @@ public class HazelcastUtils {
         }
 
         @Override
-        protected void releaseResource(
-                HazelcastTransactionContextHolder resourceHolder,
-                HazelcastInstance resourceKey) {
-            log.finest("In HazelcastTransactionSynchronization::"
-                    + "releaseResource");
+        protected void releaseResource(HazelcastTransactionContextHolder resourceHolder, HazelcastInstance resourceKey) {
+            LOG.debug("In HazelcastTransactionSynchronization::releaseResource");
 
             super.releaseResource(resourceHolder, resourceKey);
 
